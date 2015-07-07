@@ -1,9 +1,9 @@
-TRACEPOINT_EVENT(osd, // provider的名称 
-do_osd_op_pre_copy_get,// tracepoint的名称
-    TP_ARGS(// 输入参数列表
+TRACEPOINT_EVENT(osd, 
+    do_osd_op_pre_copy_get,
+    TP_ARGS(
         const char*, oid,
         uint64_t, snap),
-    TP_FIELDS( // 输出列表
+    TP_FIELDS(
         ctf_string(oid, oid)
         ctf_integer(uint64_t, snap, snap)
     )
