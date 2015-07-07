@@ -5,7 +5,7 @@ tp.h 文件定义了tracepoint provider，以及相应的tracepoint <br>
 tp.c 在定义了宏之后，再引用tp.h，从而产生trace所需要的函数和全局结构体 <br>
 main.c 引用tp.h，由于没有定义相应的宏，所以它看到的只是申明 <br>
 下面对应的编译指令: <br>
-```cpp
+```shell
 #gcc -c -I. tp.c
 #ar rc tp.o // 打包成静态库
 #gcc -c main.c
