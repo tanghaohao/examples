@@ -29,3 +29,8 @@ gcc -c main.c
 gcc -o app main.o -ldl
 LD_PRELOAD=tp.so ./app
 ```
+#lttng-gen-tp
+你只需要创建定义tracepoint的模板文件，然后使用lttng-gen-tp自动生成对应的tp.h和tp.c文件。template目录下是使用lttng-gen-tp的一个例子
+
+#资料
+有关lttng的只是可以参见我的[博客](http://tanghaohao.github.io/LTTNG)
