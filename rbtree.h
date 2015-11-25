@@ -1,15 +1,9 @@
-/**
- * C++ 语言: 红黑树
- *
- * @author skywang
- * @date 2013/11/07
- */
-
 #ifndef _RED_BLACK_TREE_HPP_
 #define _RED_BLACK_TREE_HPP_ 
 
 #include <iomanip>
 #include <iostream>
+#include <deque>
 using namespace std;
 
 enum RBTColor{RED, BLACK};
@@ -17,94 +11,42 @@ enum RBTColor{RED, BLACK};
 template <class T>
 class RBTNode{
     public:
-        RBTColor color;    // 颜色
-        T key;            // 关键字(键值)
-        RBTNode *left;    // 左孩子
-        RBTNode *right;    // 右孩子
-        RBTNode *parent; // 父结点
-
-        RBTNode(T value, RBTColor c, RBTNode *p, RBTNode *l, RBTNode *r):
-            key(value),color(c),parent(),left(l),right(r) {}
+        RBTColor color;
+	T key;
+        RBTNode *left;
+        RBTNode *right;
+        RBTNode *parent;
+	int rank;
+	
+	RBTNode(T value, RBTColor c, RBTNode *p, RBTNode *l, RBTNode *r):
+	    key(value),color(c),parent(),left(l),right(r),rank(0) {}
 };
 
 template <class T>
 class RBTree {
     private:
-        RBTNode<T> *mRoot;    // 根结点
+        RBTNode<T> *mRoot;
+	int mSize;
 
     public:
         RBTree();
         ~RBTree();
 
-        // 前序遍历"红黑树"
-        void preOrder();
-        // 中序遍历"红黑树"
-        void inOrder();
-        // 后序遍历"红黑树"
-        void postOrder();
+	RBTNode<T>* rank2node(int rank);
+	int size() { return mSize; }
 
-        // (递归实现)查找"红黑树"中键值为key的节点
-        RBTNode<T>* search(T key);
-        // (非递归实现)查找"红黑树"中键值为key的节点
-        RBTNode<T>* iterativeSearch(T key);
-
-        // 查找最小结点：返回最小结点的键值。
-        T minimum();
-        // 查找最大结点：返回最大结点的键值。
-        T maximum();
-
-        // 找结点(x)的后继结点。即，查找"红黑树中数据值大于该结点"的"最小结点"。
-        RBTNode<T>* successor(RBTNode<T> *x);
-        // 找结点(x)的前驱结点。即，查找"红黑树中数据值小于该结点"的"最大结点"。
-        RBTNode<T>* predecessor(RBTNode<T> *x);
-
-        // 将结点(key为节点键值)插入到红黑树中
-        void insert(T key);
-
-        // 删除结点(key为节点键值)
+        int insert(T key);
         void remove(T key);
-
-        // 销毁红黑树
+	RBTNode<T>* search(T key);
         void destroy();
-
-        // 打印红黑树
-        void print();
     private:
-        // 前序遍历"红黑树"
-        void preOrder(RBTNode<T>* tree) const;
-        // 中序遍历"红黑树"
-        void inOrder(RBTNode<T>* tree) const;
-        // 后序遍历"红黑树"
-        void postOrder(RBTNode<T>* tree) const;
-
-        // (递归实现)查找"红黑树x"中键值为key的节点
-        RBTNode<T>* search(RBTNode<T>* x, T key) const;
-        // (非递归实现)查找"红黑树x"中键值为key的节点
-        RBTNode<T>* iterativeSearch(RBTNode<T>* x, T key) const;
-
-        // 查找最小结点：返回tree为根结点的红黑树的最小结点。
-        RBTNode<T>* minimum(RBTNode<T>* tree);
-        // 查找最大结点：返回tree为根结点的红黑树的最大结点。
-        RBTNode<T>* maximum(RBTNode<T>* tree);
-
-        // 左旋
         void leftRotate(RBTNode<T>* &root, RBTNode<T>* x);
-        // 右旋
         void rightRotate(RBTNode<T>* &root, RBTNode<T>* y);
-        // 插入函数
-        void insert(RBTNode<T>* &root, RBTNode<T>* node);
-        // 插入修正函数
+        int insert(RBTNode<T>* &root, RBTNode<T>* node);
         void insertFixUp(RBTNode<T>* &root, RBTNode<T>* node);
-        // 删除函数
         void remove(RBTNode<T>* &root, RBTNode<T> *node);
-        // 删除修正函数
         void removeFixUp(RBTNode<T>* &root, RBTNode<T> *node, RBTNode<T> *parent);
-
-        // 销毁红黑树
         void destroy(RBTNode<T>* &tree);
-
-        // 打印红黑树
-        void print(RBTNode<T>* tree, T key, int direction);
 
 #define rb_parent(r)   ((r)->parent)
 #define rb_color(r) ((r)->color)
@@ -116,220 +58,38 @@ class RBTree {
 #define rb_set_color(r,c)  do { (r)->color = (c); } while (0)
 };
 
-/* 
- * 构造函数
- */
 template <class T>
 RBTree<T>::RBTree():mRoot(NULL)
 {
     mRoot = NULL;
+    mSize = 0;
 }
 
-/* 
- * 析构函数
- */
 template <class T>
 RBTree<T>::~RBTree() 
 {
     destroy();
 }
 
-/*
- * 前序遍历"红黑树"
- */
 template <class T>
-void RBTree<T>::preOrder(RBTNode<T>* tree) const
+RBTNode<T>* RBTree<T>::rank2node(int rank)
 {
-    if(tree != NULL)
-    {
-        cout<< tree->key << " " ;
-        preOrder(tree->left);
-        preOrder(tree->right);
+    if (rank >= 0) {
+	RBTNode<T>* x = mRoot;
+	while (x) {
+	    if (x->rank < rank) {
+		rank -= x->rank + 1;
+		x = x->right;
+	    }
+	    else if (x->rank > rank) {
+		x = x->left;
+	    }
+	    else {
+		return x;
+	    }
+	}
     }
-}
-
-template <class T>
-void RBTree<T>::preOrder() 
-{
-    preOrder(mRoot);
-}
-
-/*
- * 中序遍历"红黑树"
- */
-template <class T>
-void RBTree<T>::inOrder(RBTNode<T>* tree) const
-{
-    if(tree != NULL)
-    {
-        inOrder(tree->left);
-        cout<< tree->key << " " ;
-        inOrder(tree->right);
-    }
-}
-
-template <class T>
-void RBTree<T>::inOrder() 
-{
-    inOrder(mRoot);
-}
-
-/*
- * 后序遍历"红黑树"
- */
-template <class T>
-void RBTree<T>::postOrder(RBTNode<T>* tree) const
-{
-    if(tree != NULL)
-    {
-        postOrder(tree->left);
-        postOrder(tree->right);
-        cout<< tree->key << " " ;
-    }
-}
-
-template <class T>
-void RBTree<T>::postOrder() 
-{
-    postOrder(mRoot);
-}
-
-/*
- * (递归实现)查找"红黑树x"中键值为key的节点
- */
-template <class T>
-RBTNode<T>* RBTree<T>::search(RBTNode<T>* x, T key) const
-{
-    if (x==NULL || x->key==key)
-        return x;
-
-    if (key < x->key)
-        return search(x->left, key);
-    else
-        return search(x->right, key);
-}
-
-template <class T>
-RBTNode<T>* RBTree<T>::search(T key) 
-{
-    search(mRoot, key);
-}
-
-/*
- * (非递归实现)查找"红黑树x"中键值为key的节点
- */
-template <class T>
-RBTNode<T>* RBTree<T>::iterativeSearch(RBTNode<T>* x, T key) const
-{
-    while ((x!=NULL) && (x->key!=key))
-    {
-        if (key < x->key)
-            x = x->left;
-        else
-            x = x->right;
-    }
-
-    return x;
-}
-
-template <class T>
-RBTNode<T>* RBTree<T>::iterativeSearch(T key)
-{
-    iterativeSearch(mRoot, key);
-}
-
-/* 
- * 查找最小结点：返回tree为根结点的红黑树的最小结点。
- */
-template <class T>
-RBTNode<T>* RBTree<T>::minimum(RBTNode<T>* tree)
-{
-    if (tree == NULL)
-        return NULL;
-
-    while(tree->left != NULL)
-        tree = tree->left;
-    return tree;
-}
-
-template <class T>
-T RBTree<T>::minimum()
-{
-    RBTNode<T> *p = minimum(mRoot);
-    if (p != NULL)
-        return p->key;
-
-    return (T)NULL;
-}
- 
-/* 
- * 查找最大结点：返回tree为根结点的红黑树的最大结点。
- */
-template <class T>
-RBTNode<T>* RBTree<T>::maximum(RBTNode<T>* tree)
-{
-    if (tree == NULL)
-        return NULL;
-
-    while(tree->right != NULL)
-        tree = tree->right;
-    return tree;
-}
-
-template <class T>
-T RBTree<T>::maximum()
-{
-    RBTNode<T> *p = maximum(mRoot);
-    if (p != NULL)
-        return p->key;
-
-    return (T)NULL;
-}
-
-/* 
- * 找结点(x)的后继结点。即，查找"红黑树中数据值大于该结点"的"最小结点"。
- */
-template <class T>
-RBTNode<T>* RBTree<T>::successor(RBTNode<T> *x)
-{
-    // 如果x存在右孩子，则"x的后继结点"为 "以其右孩子为根的子树的最小结点"。
-    if (x->right != NULL)
-        return minimum(x->right);
-
-    // 如果x没有右孩子。则x有以下两种可能：
-    // (01) x是"一个左孩子"，则"x的后继结点"为 "它的父结点"。
-    // (02) x是"一个右孩子"，则查找"x的最低的父结点，并且该父结点要具有左孩子"，找到的这个"最低的父结点"就是"x的后继结点"。
-    RBTNode<T>* y = x->parent;
-    while ((y!=NULL) && (x==y->right))
-    {
-        x = y;
-        y = y->parent;
-    }
-
-    return y;
-}
- 
-/* 
- * 找结点(x)的前驱结点。即，查找"红黑树中数据值小于该结点"的"最大结点"。
- */
-template <class T>
-RBTNode<T>* RBTree<T>::predecessor(RBTNode<T> *x)
-{
-    // 如果x存在左孩子，则"x的前驱结点"为 "以其左孩子为根的子树的最大结点"。
-    if (x->left != NULL)
-        return maximum(x->left);
-
-    // 如果x没有左孩子。则x有以下两种可能：
-    // (01) x是"一个右孩子"，则"x的前驱结点"为 "它的父结点"。
-    // (01) x是"一个左孩子"，则查找"x的最低的父结点，并且该父结点要具有右孩子"，找到的这个"最低的父结点"就是"x的前驱结点"。
-    RBTNode<T>* y = x->parent;
-    while ((y!=NULL) && (x==y->left))
-    {
-        x = y;
-        y = y->parent;
-    }
-
-    return y;
+    return NULL;
 }
 
 /* 
@@ -349,34 +109,28 @@ RBTNode<T>* RBTree<T>::predecessor(RBTNode<T> *x)
 template <class T>
 void RBTree<T>::leftRotate(RBTNode<T>* &root, RBTNode<T>* x)
 {
-    // 设置x的右孩子为y
     RBTNode<T> *y = x->right;
-
-    // 将 “y的左孩子” 设为 “x的右孩子”；
-    // 如果y的左孩子非空，将 “x” 设为 “y的左孩子的父亲”
     x->right = y->left;
     if (y->left != NULL)
         y->left->parent = x;
 
-    // 将 “x的父亲” 设为 “y的父亲”
     y->parent = x->parent;
 
     if (x->parent == NULL)
     {
-        root = y;            // 如果 “x的父亲” 是空节点，则将y设为根节点
+        root = y;
     }
     else
     {
         if (x->parent->left == x)
-            x->parent->left = y;    // 如果 x是它父节点的左孩子，则将y设为“x的父节点的左孩子”
+            x->parent->left = y;
         else
-            x->parent->right = y;    // 如果 x是它父节点的左孩子，则将y设为“x的父节点的左孩子”
+            x->parent->right = y;
     }
     
-    // 将 “x” 设为 “y的左孩子”
     y->left = x;
-    // 将 “x的父节点” 设为 “y”
     x->parent = y;
+    y->rank += x->rank + 1;
 }
 
 /* 
@@ -395,53 +149,36 @@ void RBTree<T>::leftRotate(RBTNode<T>* &root, RBTNode<T>* x)
 template <class T>
 void RBTree<T>::rightRotate(RBTNode<T>* &root, RBTNode<T>* y)
 {
-    // 设置x是当前节点的左孩子。
     RBTNode<T> *x = y->left;
 
-    // 将 “x的右孩子” 设为 “y的左孩子”；
-    // 如果"x的右孩子"不为空的话，将 “y” 设为 “x的右孩子的父亲”
     y->left = x->right;
     if (x->right != NULL)
         x->right->parent = y;
 
-    // 将 “y的父亲” 设为 “x的父亲”
     x->parent = y->parent;
 
     if (y->parent == NULL) 
     {
-        root = x;            // 如果 “y的父亲” 是空节点，则将x设为根节点
+        root = x;
     }
     else
     {
         if (y == y->parent->right)
-            y->parent->right = x;    // 如果 y是它父节点的右孩子，则将x设为“y的父节点的右孩子”
+            y->parent->right = x;
         else
-            y->parent->left = x;    // (y是它父节点的左孩子) 将x设为“x的父节点的左孩子”
+            y->parent->left = x;
     }
 
-    // 将 “y” 设为 “x的右孩子”
     x->right = y;
-
-    // 将 “y的父节点” 设为 “x”
     y->parent = x;
+    y->rank -= x->rank + 1;
 }
 
-/*
- * 红黑树插入修正函数
- *
- * 在向红黑树中插入节点之后(失去平衡)，再调用该函数；
- * 目的是将它重新塑造成一颗红黑树。
- *
- * 参数说明：
- *     root 红黑树的根
- *     node 插入的结点        // 对应《算法导论》中的z
- */
 template <class T>
 void RBTree<T>::insertFixUp(RBTNode<T>* &root, RBTNode<T>* node)
 {
     RBTNode<T> *parent, *gparent;
 
-    // 若“父节点存在，并且父节点的颜色是红色”
     while ((parent = rb_parent(node)) && rb_is_red(parent))
     {
         gparent = rb_parent(parent);
@@ -518,22 +255,30 @@ void RBTree<T>::insertFixUp(RBTNode<T>* &root, RBTNode<T>* node)
  *
  * 参数说明：
  *     root 红黑树的根结点
- *     node 插入的结点        // 对应《算法导论》中的node
+ *     node 插入的结点
+ * 返回值：
+ *     node 在红黑树中的排名
  */
 template <class T>
-void RBTree<T>::insert(RBTNode<T>* &root, RBTNode<T>* node)
+int RBTree<T>::insert(RBTNode<T>* &root, RBTNode<T>* node)
 {
     RBTNode<T> *y = NULL;
     RBTNode<T> *x = root;
+    deque< RBTNode<T>* > path;
+    int rank = 0;
 
-    // 1. 将红黑树当作一颗二叉查找树，将节点添加到二叉查找树中。
     while (x != NULL)
     {
         y = x;
-        if (node->key < x->key)
+	if (node->key == x->key)
+	    return -1;
+	else if (node->key < x->key){
+	    path.push_back(y);
             x = x->left;
-        else
+	} else {
+	    rank += x->rank + 1;
             x = x->right;
+	}
     }
 
     node->parent = y;
@@ -547,30 +292,31 @@ void RBTree<T>::insert(RBTNode<T>* &root, RBTNode<T>* node)
     else
         root = node;
 
-    // 2. 设置节点的颜色为红色
+    while (!path.empty()) {
+	RBTNode<T> *p = path.front();
+	path.pop_front();
+	p->rank ++;
+    }
     node->color = RED;
 
-    // 3. 将它重新修正为一颗二叉查找树
     insertFixUp(root, node);
+    return rank;
 }
 
-/* 
- * 将结点(key为节点键值)插入到红黑树中
- *
- * 参数说明：
- *     tree 红黑树的根结点
- *     key 插入结点的键值
- */
 template <class T>
-void RBTree<T>::insert(T key)
+int RBTree<T>::insert(T key)
 {
     RBTNode<T> *z=NULL;
 
-    // 如果新建结点失败，则返回。
     if ((z=new RBTNode<T>(key,BLACK,NULL,NULL,NULL)) == NULL)
-        return ;
+        return -1;
 
-    insert(mRoot, z);
+    int rank = insert(mRoot, z);
+    if (rank == -1)
+	delete z;
+    else
+	mSize += 1;
+    return rank;
 }
 
 /*
@@ -684,19 +430,21 @@ void RBTree<T>::remove(RBTNode<T>* &root, RBTNode<T> *node)
     RBTNode<T> *child, *parent;
     RBTColor color;
 
-    // 被删除节点的"左右孩子都不为空"的情况。
     if ( (node->left!=NULL) && (node->right!=NULL) ) 
     {
-        // 被删节点的后继节点。(称为"取代节点")
-        // 用它来取代"被删节点"的位置，然后再将"被删节点"去掉。
-        RBTNode<T> *replace = node;
-
-        // 获取后继节点
-        replace = replace->right;
+        RBTNode<T> *replace = node->right;
         while (replace->left != NULL)
             replace = replace->left;
+	
+	{
+	    parent = replace;
+	    while (rb_parent(parent)) {
+		if (rb_parent(parent)->left == parent)
+		    rb_parent(parent)->rank --;
+		parent = rb_parent(parent);
+	    }
+	}
 
-        // "node节点"不是根节点(只有根节点不存在父节点)
         if (rb_parent(node))
         {
             if (rb_parent(node)->left == node)
@@ -705,24 +453,18 @@ void RBTree<T>::remove(RBTNode<T>* &root, RBTNode<T> *node)
                 rb_parent(node)->right = replace;
         } 
         else 
-            // "node节点"是根节点，更新根节点。
             root = replace;
 
-        // child是"取代节点"的右孩子，也是需要"调整的节点"。
-        // "取代节点"肯定不存在左孩子！因为它是一个后继节点。
         child = replace->right;
         parent = rb_parent(replace);
-        // 保存"取代节点"的颜色
         color = rb_color(replace);
 
-        // "被删除节点"是"它的后继节点的父节点"
         if (parent == node)
         {
             parent = replace;
         } 
         else
         {
-            // child不为空
             if (child)
                 rb_set_parent(child, parent);
             parent->left = child;
@@ -734,6 +476,7 @@ void RBTree<T>::remove(RBTNode<T>* &root, RBTNode<T> *node)
         replace->parent = node->parent;
         replace->color = node->color;
         replace->left = node->left;
+	replace->rank = node->rank;
         node->left->parent = replace;
 
         if (color == BLACK)
@@ -748,14 +491,19 @@ void RBTree<T>::remove(RBTNode<T>* &root, RBTNode<T> *node)
     else 
         child = node->right;
 
+    parent = node;
+    while (rb_parent(parent)) {
+	if (rb_parent(parent)->left == parent)
+	    rb_parent(parent)->rank --;
+	parent = rb_parent(parent);
+    }
+
     parent = node->parent;
-    // 保存"取代节点"的颜色
     color = node->color;
 
     if (child)
         child->parent = parent;
 
-    // "node节点"不是根节点
     if (parent)
     {
         if (parent->left == node)
@@ -778,12 +526,26 @@ void RBTree<T>::remove(RBTNode<T>* &root, RBTNode<T> *node)
  *     tree 红黑树的根结点
  */
 template <class T>
+RBTNode<T>* RBTree<T>::search(T key)
+{
+    RBTNode<T> *x = mRoot;
+    while (x != NULL) {
+	if (x->key == key)
+	    return x;
+	else if (x->key > key)
+	    x = x->left;
+	else
+	    x = x->right;
+    }
+    return NULL;
+}
+
+template <class T>
 void RBTree<T>::remove(T key)
 {
     RBTNode<T> *node; 
 
-    // 查找key对应的节点(node)，找到的话就删除该节点
-    if ((node = search(mRoot, key)) != NULL)
+    if ((node = search(key)) != NULL)
         remove(mRoot, node);
 }
 
@@ -803,6 +565,7 @@ void RBTree<T>::destroy(RBTNode<T>* &tree)
 
     delete tree;
     tree=NULL;
+    mSize = 0;
 }
 
 template <class T>
@@ -810,35 +573,4 @@ void RBTree<T>::destroy()
 {
     destroy(mRoot);
 }
-
-/*
- * 打印"二叉查找树"
- *
- * key        -- 节点的键值 
- * direction  --  0，表示该节点是根节点;
- *               -1，表示该节点是它的父结点的左孩子;
- *                1，表示该节点是它的父结点的右孩子。
- */
-template <class T>
-void RBTree<T>::print(RBTNode<T>* tree, T key, int direction)
-{
-    if(tree != NULL)
-    {
-        if(direction==0)    // tree是根节点
-            cout << setw(2) << tree->key << "(B) is root" << endl;
-        else                // tree是分支节点
-            cout << setw(2) << tree->key <<  (rb_is_red(tree)?"(R)":"(B)") << " is " << setw(2) << key << "'s "  << setw(12) << (direction==1?"right child" : "left child") << endl;
-
-        print(tree->left, tree->key, -1);
-        print(tree->right,tree->key,  1);
-    }
-}
-
-template <class T>
-void RBTree<T>::print()
-{
-    if (mRoot != NULL)
-        print(mRoot, mRoot->key, 0);
-}
-
 #endif
