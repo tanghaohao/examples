@@ -25,28 +25,28 @@ class RBTNode{
 template <class T>
 class RBTree {
     private:
-        RBTNode<T> *mRoot;
+	RBTNode<T> *mRoot;
 	int mSize;
 
     public:
-        RBTree();
-        ~RBTree();
+	RBTree();
+	~RBTree();
 
 	RBTNode<T>* rank2node(int rank);
 	int size() { return mSize; }
 
-        int insert(T key);
-        void remove(T key);
-	RBTNode<T>* search(T key);
-        void destroy();
+	int insert(T key);
+	int remove(T key);
+	RBTNode<T>* search(T key, int *rank = NULL);
+	void destroy();
     private:
-        void leftRotate(RBTNode<T>* &root, RBTNode<T>* x);
-        void rightRotate(RBTNode<T>* &root, RBTNode<T>* y);
-        int insert(RBTNode<T>* &root, RBTNode<T>* node);
-        void insertFixUp(RBTNode<T>* &root, RBTNode<T>* node);
-        void remove(RBTNode<T>* &root, RBTNode<T> *node);
-        void removeFixUp(RBTNode<T>* &root, RBTNode<T> *node, RBTNode<T> *parent);
-        void destroy(RBTNode<T>* &tree);
+	void leftRotate(RBTNode<T>* &root, RBTNode<T>* x);
+	void rightRotate(RBTNode<T>* &root, RBTNode<T>* y);
+	int insert(RBTNode<T>* &root, RBTNode<T>* node);
+	void insertFixUp(RBTNode<T>* &root, RBTNode<T>* node);
+	void remove(RBTNode<T>* &root, RBTNode<T> *node);
+	void removeFixUp(RBTNode<T>* &root, RBTNode<T> *node, RBTNode<T> *parent);
+	void destroy(RBTNode<T>* &tree);
 
 #define rb_parent(r)   ((r)->parent)
 #define rb_color(r) ((r)->color)
@@ -526,27 +526,39 @@ void RBTree<T>::remove(RBTNode<T>* &root, RBTNode<T> *node)
  *     tree 红黑树的根结点
  */
 template <class T>
-RBTNode<T>* RBTree<T>::search(T key)
+RBTNode<T>* RBTree<T>::search(T key, int *rank)
 {
     RBTNode<T> *x = mRoot;
-    while (x != NULL) {
-	if (x->key == key)
-	    return x;
-	else if (x->key > key)
-	    x = x->left;
-	else
+    int nrank = 0;
+
+    while (x) {
+	if (x->key == key) {
+	    nrank += x->rank;
+	    break;
+	}
+	else if (x->key < key) {
+	    nrank += x->rank + 1;
 	    x = x->right;
+	}
+	else
+	    x = x->left;
     }
-    return NULL;
+    if (rank)
+	*rank = nrank;
+    return x;
 }
 
 template <class T>
-void RBTree<T>::remove(T key)
+int RBTree<T>::remove(T key)
 {
-    RBTNode<T> *node; 
+    RBTNode<T> *node;
+    int rank;
 
-    if ((node = search(key)) != NULL)
+    if ((node = search(key, &rank)) != NULL) {
         remove(mRoot, node);
+	return rank;
+    }
+    return -1;
 }
 
 /*
